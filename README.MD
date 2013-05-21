@@ -210,8 +210,4 @@ angular.module('myMod').controller('MyCtrl',
   }]);
 ```
 
-The annotations are important because minified code will rename variables, making it impossible for AngularJS to infer module names based solely on function parameters.
-
-The recommended build process uses `ngmin`, a tool that automatically adds these annotations. However, if you'd rather not use `ngmin`, you have to add these annotations manually yourself.
-
 
