@@ -3,6 +3,8 @@ var path = require('path');
 var util = require('util');
 var spawn = require('child_process').spawn;
 var yeoman = require('yeoman-generator');
+var exec = require('child_process').exec;
+// var fs = require('fs');
 
 
 var Generator = module.exports = function Generator(args, options) {
@@ -178,3 +180,71 @@ Generator.prototype.packageFiles = function () {
   this.template('../../templates/common/package.json', 'package.json');
   this.template('../../templates/common/Gruntfile.js', 'Gruntfile.js');
 };
+
+// Heroku app.js server with express 
+
+Generator.prototype.checkInstallation = function checkInstallation() {
+  var done = this.async();
+
+  this.herokuInstalled = false;
+  exec('heroku --version', function (err) {
+    if (err) {
+      this.log.error('You don\'t have the Heroku Toolbelt installed. ' +
+                     'Grab it from https://toolbelt.heroku.com/');
+    } else {
+      this.herokuInstalled = true;
+    }
+    done();
+  }.bind(this));
+};
+
+
+Generator.prototype.express = function express() {
+  this.copy('../../templates/common/Procfile', 'Procfile');
+  this.copy('../../templates/common/app.js', 'app.js');
+};
+
+// Generator.prototype.distpackage = function distpackage() {
+//   var pkg = JSON.parse(this.readFileAsString('package.json'));
+//   var distPkg = {
+//     name: pkg.name || 'unnamed',
+//     version: '0.0.0',
+//     dependencies: {
+//       "express": "~3.0.0"
+//     }
+//   };
+
+//   this.write('distpackage.json', JSON.stringify(distPkg, null, 2));
+// };
+
+// Generator.prototype.rewiregrunt = function rewiregrunt() {
+//   var template = this.readFileAsString(path.join(__dirname, 'templates', 'copytemplate.js'));
+
+//   console.log(
+//     'Please add this copy task rule to your Gruntfile: \n'.yellow +
+//     template
+//   );
+// };
+
+// Generator.prototype.gitsetup = function gitsetup() {
+//   if (this.distRepo) {
+//     exec('git init', { cwd: this.distDir });
+//     console.log('You\'re all set! Now go to ' + this.distDir + ' and run\n\t'.green +
+//                 'heroku apps:create'.bold);
+//   } else {
+//     fs.readFile('.gitignore', { encoding: 'utf-8' }, function (err, data) {
+//       if (err) {
+//         return;
+//       }
+
+//       // Remove dist/ ignore
+//       data = data.replace(new RegExp(escapeRegExp(this.distDir) + '\/?\n', 'g'), '');
+
+//       // Fire and forget
+//       fs.writeFile('.gitignore', data);
+//     }.bind(this));
+//     console.log('You\'re all set! Now run\n\t'.green + 'heroku apps:create'.bold +
+//                 '\nand push your ' + this.distDir + ' directory with\n\t'.green +
+//                 'git subtree push --prefix dist heroku master'.bold);
+//   }
+// };
