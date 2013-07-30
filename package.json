@@ -1,6 +1,6 @@
 {
   "name": "generator-express-angular",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Yeoman generator for AngularJS + Express",
   "keywords": [
     "yeoman-generator",
