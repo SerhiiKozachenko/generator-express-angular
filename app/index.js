@@ -3,16 +3,16 @@ var path = require('path');
 var util = require('util');
 var spawn = require('child_process').spawn;
 var yeoman = require('yeoman-generator');
-var exec = require('child_process').exec;
-// var fs = require('fs');
 
 
 var Generator = module.exports = function Generator(args, options) {
   yeoman.generators.Base.apply(this, arguments);
   this.argument('appname', { type: String, required: false });
   this.appname = this.appname || path.basename(process.cwd());
+  this.indexFile = this.engine(this.read('../../templates/common/index.html'),
+      this);
 
-  var args = ['main'];
+  args = ['main'];
 
   if (typeof this.env.options.appPath === 'undefined') {
     try {
@@ -59,54 +59,39 @@ var Generator = module.exports = function Generator(args, options) {
     options: {
       options: {
         coffee: this.options.coffee,
+        travis: true,
         'skip-install': this.options['skip-install']
-       }
+      }
     }
   });
 
   this.on('end', function () {
     this.installDependencies({ skipInstall: this.options['skip-install'] });
   });
+
+  this.pkg = JSON.parse(this.readFileAsString(path.join(__dirname, '../package.json')));
 };
 
-util.inherits(Generator, yeoman.generators.NamedBase);
+util.inherits(Generator, yeoman.generators.Base);
 
 Generator.prototype.askForBootstrap = function askForBootstrap() {
   var cb = this.async();
 
-  this.prompt({
+  this.prompt([{
+    type: 'confirm',
     name: 'bootstrap',
     message: 'Would you like to include Twitter Bootstrap?',
-    default: true,
-    warning: 'Yes: All Twitter Bootstrap files will be placed into the styles directory.'
-  }, function (err, props) {
-    if (err) {
-      return this.emit('error', err);
-    }
-
-    this.bootstrap = props.bootstrap;
-
-    cb();
-  }.bind(this));
-};
-
-Generator.prototype.askForCompass = function askForCompass() {
-  if (!this.bootstrap) {
-    return;
-  }
-
-  var cb = this.async();
-
-  this.prompt({
+    default: true
+  }, {
+    type: 'confirm',
     name: 'compassBootstrap',
-    message: 'If so, would you like to use Twitter Bootstrap for Compass (as opposed to vanilla CSS)?',
+    message: 'Would you like to use Twitter Bootstrap for Compass (as opposed to vanilla CSS)?',
     default: true,
-    warning: 'Yes: All Twitter Bootstrap files will be placed into the styles directory.'
-  }, function (err, props) {
-    if (err) {
-      return this.emit('error', err);
+    when: function (props) {
+      return props.bootstrap;
     }
-
+  }], function (props) {
+    this.bootstrap = props.bootstrap;
     this.compassBootstrap = props.compassBootstrap;
 
     cb();
@@ -117,134 +102,130 @@ Generator.prototype.askForModules = function askForModules() {
   var cb = this.async();
 
   var prompts = [{
-    name: 'resourceModule',
-    message: 'Would you like to include angular-resource.js?',
-    default: true,
-    warning: 'Yes: angular-resource added to bower.json'
-  }, {
-    name: 'cookiesModule',
-    message: 'Would you like to include angular-cookies.js?',
-    default: true,
-    warning: 'Yes: angular-cookies added to bower.json'
-  }, {
-    name: 'sanitizeModule',
-    message: 'Would you like to include angular-sanitize.js?',
-    default: true,
-    warning: 'Yes: angular-sanitize added to bower.json'
+    type: 'checkbox',
+    name: 'modules',
+    message: 'Which modules would you like to include?',
+    choices: [{
+      value: 'resourceModule',
+      name: 'angular-resource.js',
+      checked: true
+    }, {
+      value: 'cookiesModule',
+      name: 'angular-cookies.js',
+      checked: true
+    }, {
+      value: 'sanitizeModule',
+      name: 'angular-sanitize.js',
+      checked: true
+    }]
   }];
 
-  this.prompt(prompts, function (err, props) {
-    if (err) {
-      return this.emit('error', err);
-    }
-
-    this.resourceModule = props.resourceModule;
-    this.cookiesModule = props.cookiesModule;
-    this.sanitizeModule = props.sanitizeModule;
+  this.prompt(prompts, function (props) {
+    var hasMod = function (mod) { return props.modules.indexOf(mod) !== -1; };
+    this.resourceModule = hasMod('resourceModule');
+    this.cookiesModule = hasMod('cookiesModule');
+    this.sanitizeModule = hasMod('sanitizeModule');
 
     cb();
   }.bind(this));
 };
 
-// Duplicated from the SASS generator, waiting a solution for #138
+// Waiting a more flexible solution for #138
 Generator.prototype.bootstrapFiles = function bootstrapFiles() {
-  var appPath = this.appPath;
+  var sass = this.compassBootstrap;
+  var files = [];
+  var source = 'styles/' + ( sass ? 'scss/' : 'css/' );
 
-  if (this.compassBootstrap) {
-    var cb = this.async();
-
-    this.write(path.join(appPath, 'styles/main.scss'), '@import "compass_twitter_bootstrap";');
-    this.remote('vwall', 'compass-twitter-bootstrap', 'v2.2.2.2', function (err, remote) {
-      if (err) {
-        return cb(err);
-      }
-      remote.directory('stylesheets', path.join(appPath, 'styles'));
-      cb();
-    });
-  } else if (this.bootstrap) {
-    this.log.writeln('Writing compiled Bootstrap');
-    this.copy('bootstrap.css', path.join(appPath, 'styles/bootstrap.css'));
+  if (sass) {
+    files.push('main.scss');
+    this.copy('images/glyphicons-halflings.png', 'app/images/glyphicons-halflings.png');
+    this.copy('images/glyphicons-halflings-white.png', 'app/images/glyphicons-halflings-white.png');
+  } else {
+    if (this.bootstrap) {
+      files.push('bootstrap.css');
+    }
+    files.push('main.css');
   }
 
-  if (this.bootstrap || this.compassBootstrap) {
-    // this.directory('images', 'app/images');
+  files.forEach(function (file) {
+    this.copy(source + file, 'app/styles/' + file);
+  }.bind(this));
+
+  this.indexFile = this.appendFiles({
+    html: this.indexFile,
+    fileType: 'css',
+    optimizedPath: 'styles/main.css',
+    sourceFileList: files.map(function (file) {
+      return 'styles/' + file.replace('.scss', '.css');
+    }),
+    searchPath: ['.tmp', 'app']
+  });
+};
+
+Generator.prototype.bootstrapJs = function bootstrapJs() {
+  if (!this.bootstrap) {
+    return;  // Skip if disabled.
   }
+
+  // Wire Twitter Bootstrap plugins
+  this.indexFile = this.appendScripts(this.indexFile, 'scripts/plugins.js', [
+    'bower_components/bootstrap-sass/js/bootstrap-affix.js',
+    'bower_components/bootstrap-sass/js/bootstrap-alert.js',
+    'bower_components/bootstrap-sass/js/bootstrap-dropdown.js',
+    'bower_components/bootstrap-sass/js/bootstrap-tooltip.js',
+    'bower_components/bootstrap-sass/js/bootstrap-modal.js',
+    'bower_components/bootstrap-sass/js/bootstrap-transition.js',
+    'bower_components/bootstrap-sass/js/bootstrap-button.js',
+    'bower_components/bootstrap-sass/js/bootstrap-popover.js',
+    'bower_components/bootstrap-sass/js/bootstrap-typeahead.js',
+    'bower_components/bootstrap-sass/js/bootstrap-carousel.js',
+    'bower_components/bootstrap-sass/js/bootstrap-scrollspy.js',
+    'bower_components/bootstrap-sass/js/bootstrap-collapse.js',
+    'bower_components/bootstrap-sass/js/bootstrap-tab.js'
+  ]);
+};
+
+Generator.prototype.extraModules = function extraModules() {
+  var modules = [];
+  if (this.resourceModule) {
+    modules.push('bower_components/angular-resource/angular-resource.js');
+  }
+
+  if (this.cookiesModule) {
+    modules.push('bower_components/angular-cookies/angular-cookies.js');
+  }
+
+  if (this.sanitizeModule) {
+    modules.push('bower_components/angular-sanitize/angular-sanitize.js');
+  }
+
+  if (modules.length) {
+    this.indexFile = this.appendScripts(this.indexFile, 'scripts/modules.js',
+        modules);
+  }
+};
+
+Generator.prototype.appJs = function appJs() {
+  this.indexFile = this.appendFiles({
+    html: this.indexFile,
+    fileType: 'js',
+    optimizedPath: 'scripts/scripts.js',
+    sourceFileList: ['scripts/app.js', 'scripts/controllers/main.js'],
+    searchPath: ['.tmp', 'app']
+  });
 };
 
 Generator.prototype.createIndexHtml = function createIndexHtml() {
-  this.template('../../templates/common/index.html', path.join(this.appPath, 'index.html'));
+  this.write(path.join(this.appPath, 'index.html'), this.indexFile);
 };
 
 Generator.prototype.packageFiles = function () {
-  this.template('../../templates/common/bower.json', 'bower.json');
-  this.template('../../templates/common/package.json', 'package.json');
+  this.template('../../templates/common/_bower.json', 'bower.json');
+  this.template('../../templates/common/_package.json', 'package.json');
   this.template('../../templates/common/Gruntfile.js', 'Gruntfile.js');
 };
-
-// Heroku app.js server with express 
-
-Generator.prototype.checkInstallation = function checkInstallation() {
-  var done = this.async();
-
-  this.herokuInstalled = false;
-  exec('heroku --version', function (err) {
-    if (err) {
-      this.log.error('You don\'t have the Heroku Toolbelt installed. ' +
-                     'Grab it from https://toolbelt.heroku.com/');
-    } else {
-      this.herokuInstalled = true;
-    }
-    done();
-  }.bind(this));
-};
-
 
 Generator.prototype.express = function express() {
   this.copy('../../templates/common/Procfile', 'Procfile');
   this.copy('../../templates/common/app.js', 'app.js');
 };
-
-// Generator.prototype.distpackage = function distpackage() {
-//   var pkg = JSON.parse(this.readFileAsString('package.json'));
-//   var distPkg = {
-//     name: pkg.name || 'unnamed',
-//     version: '0.0.0',
-//     dependencies: {
-//       "express": "~3.0.0"
-//     }
-//   };
-
-//   this.write('distpackage.json', JSON.stringify(distPkg, null, 2));
-// };
-
-// Generator.prototype.rewiregrunt = function rewiregrunt() {
-//   var template = this.readFileAsString(path.join(__dirname, 'templates', 'copytemplate.js'));
-
-//   console.log(
-//     'Please add this copy task rule to your Gruntfile: \n'.yellow +
-//     template
-//   );
-// };
-
-// Generator.prototype.gitsetup = function gitsetup() {
-//   if (this.distRepo) {
-//     exec('git init', { cwd: this.distDir });
-//     console.log('You\'re all set! Now go to ' + this.distDir + ' and run\n\t'.green +
-//                 'heroku apps:create'.bold);
-//   } else {
-//     fs.readFile('.gitignore', { encoding: 'utf-8' }, function (err, data) {
-//       if (err) {
-//         return;
-//       }
-
-//       // Remove dist/ ignore
-//       data = data.replace(new RegExp(escapeRegExp(this.distDir) + '\/?\n', 'g'), '');
-
-//       // Fire and forget
-//       fs.writeFile('.gitignore', data);
-//     }.bind(this));
-//     console.log('You\'re all set! Now run\n\t'.green + 'heroku apps:create'.bold +
-//                 '\nand push your ' + this.distDir + ' directory with\n\t'.green +
-//                 'git subtree push --prefix dist heroku master'.bold);
-//   }
-// };

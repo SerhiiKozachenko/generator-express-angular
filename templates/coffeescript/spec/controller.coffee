@@ -3,7 +3,7 @@
 describe 'Controller: <%= _.classify(name) %>Ctrl', () ->
 
   # load the controller's module
-  beforeEach module '<%= _.camelize(appname) %>App'
+  beforeEach module '<%= moduleName %>'
 
   <%= _.classify(name) %>Ctrl = {}
   scope = {}
@@ -16,4 +16,4 @@ describe 'Controller: <%= _.classify(name) %>Ctrl', () ->
     }
 
   it 'should attach a list of awesomeThings to the scope', () ->
-    expect(scope.awesomeThings.length).toBe 3;
+    expect(scope.awesomeThings.length).toBe 3

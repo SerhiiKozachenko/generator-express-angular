@@ -1,6 +1,6 @@
 {
   "name": "generator-express-angular",
-  "version": "0.2.4",
+  "version": "0.2.6",
   "description": "Yeoman generator for AngularJS + Express",
   "keywords": [
     "yeoman-generator",
@@ -22,22 +22,24 @@
     "test": "mocha"
   },
   "dependencies": {
-    "yeoman-generator": "~0.11.0"
+    "yeoman-generator": "~0.12.0"
   },
   "peerDependencies": {
-    "generator-karma": "~0.2.0"
+    "generator-karma": "~0.4.0",
+    "yo": ">=1.0.0-rc.1.1"
   },
   "devDependencies": {
-    "mocha": "~1.9.0",
+    "mocha": "~1.12.0",
     "grunt": "~0.4.1",
-    "grunt-contrib-jshint": "~0.4.3",
-    "grunt-conventional-changelog": "~0.0.12",
+    "grunt-contrib-jshint": "~0.6.0",
+    "grunt-conventional-changelog": "~1.0.0",
     "marked": "~0.2.8",
-    "semver": "~1.1.4",
+    "semver": "~2.0.0",
     "grunt-release": "~0.3.3"
   },
   "engines": {
-    "node": ">=0.8.0"
+    "node": ">=0.8.0",
+    "npm": ">=1.2.10"
   },
   "licenses": [
     {

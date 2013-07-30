@@ -3,7 +3,7 @@
 describe 'Service: <%= _.camelize(name) %>', () ->
 
   # load the service's module
-  beforeEach module '<%= _.camelize(appname) %>App'
+  beforeEach module '<%= moduleName %>'
 
   # instantiate service
   <%= _.camelize(name) %> = {}
@@ -11,4 +11,4 @@ describe 'Service: <%= _.camelize(name) %>', () ->
     <%= _.camelize(name) %> = _<%= _.camelize(name) %>_
 
   it 'should do something', () ->
-    expect(!!<%= _.camelize(name) %>).toBe true;
+    expect(!!<%= _.camelize(name) %>).toBe true

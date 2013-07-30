@@ -3,7 +3,7 @@
 describe 'Filter: <%= _.camelize(name) %>', () ->
 
   # load the filter's module
-  beforeEach module '<%= _.camelize(appname) %>App'
+  beforeEach module '<%= moduleName %>'
 
   # initialize a new instance of the filter before each test
   <%= _.camelize(name) %> = {}
@@ -12,4 +12,4 @@ describe 'Filter: <%= _.camelize(name) %>', () ->
 
   it 'should return the input prefixed with "<%= _.camelize(name) %> filter:"', () ->
     text = 'angularjs'
-    expect(<%= _.camelize(name) %> text).toBe ('<%= _.camelize(name) %> filter: ' + text);
+    expect(<%= _.camelize(name) %> text).toBe ('<%= _.camelize(name) %> filter: ' + text)

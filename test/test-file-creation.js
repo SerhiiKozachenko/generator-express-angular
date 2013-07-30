@@ -32,7 +32,11 @@ describe('Angular generator', function () {
   });
 
   it('should generate dotfiles', function (done) {
-    helpers.mockPrompt(angular, {'bootstrap': 'Y', 'compassBoostrap': 'Y'});
+    helpers.mockPrompt(angular, {
+      bootstrap: true,
+      compassBoostrap: true,
+      modules: []
+    });
 
     angular.run({}, function () {
       helpers.assertFiles(['.bowerrc', '.gitignore', '.editorconfig', '.jshintrc']);
@@ -56,7 +60,11 @@ describe('Angular generator', function () {
                     'app/scripts/controllers/main.js',
                     'test/spec/controllers/main.js'
                     ];
-    helpers.mockPrompt(angular, {'bootstrap': 'Y', 'compassBoostrap': 'Y'});
+    helpers.mockPrompt(angular, {
+      bootstrap: true,
+      compassBoostrap: true,
+      modules: []
+    });
 
     angular.run({}, function() {
       helpers.assertFiles(expected);
@@ -80,7 +88,11 @@ describe('Angular generator', function () {
                     'app/scripts/controllers/main.coffee',
                     'test/spec/controllers/main.coffee'
                     ];
-    helpers.mockPrompt(angular, {'bootstrap': 'Y', 'compassBoostrap': 'Y'});
+    helpers.mockPrompt(angular, {
+      bootstrap: true,
+      compassBoostrap: true,
+      modules: []
+    });
 
     angular.env.options.coffee = true;
     angular.run([], function () {
@@ -95,7 +107,11 @@ describe('Angular generator', function () {
       var deps = ['../../controller'];
       angularCtrl = helpers.createGenerator('angular:controller', deps, ['foo']);
 
-      helpers.mockPrompt(angular, {'bootstrap': 'Y', 'compassBoostrap': 'Y'});
+      helpers.mockPrompt(angular, {
+        bootstrap: true,
+        compassBoostrap: true,
+        modules: []
+      });
       angular.run([], function () {
         angularCtrl.run([], function () {
           helpers.assertFiles([
@@ -114,7 +130,11 @@ describe('Angular generator', function () {
       var deps = ['../../view'];
       angularView = helpers.createGenerator('angular:view', deps, ['foo']);
 
-      helpers.mockPrompt(angular, {'bootstrap': 'Y', 'compassBoostrap': 'Y'});
+      helpers.mockPrompt(angular, {
+        bootstrap: true,
+        compassBoostrap: true,
+        modules: []
+      });
       angular.run([], function (){
         angularView.run([], function () {
           helpers.assertFiles([

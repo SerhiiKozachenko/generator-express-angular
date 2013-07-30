@@ -1,7 +1,7 @@
 'use strict';
 
-angular.module('<%= _.camelize(appname) %>App')
-  .directive('<%= _.camelize(name) %>', [() ->
+angular.module('<%= moduleName %>')
+  .directive '<%= _.camelize(name) %>', [->
     template: '<div></div>'
     restrict: 'E'
     link: (scope, element, attrs) ->

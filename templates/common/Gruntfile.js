@@ -1,8 +1,16 @@
+// Generated on <%= (new Date).toISOString().split('T')[0] %> using <%= pkg.name %> <%= pkg.version %>
 'use strict';
-var lrSnippet = require('grunt-contrib-livereload/lib/utils').livereloadSnippet;
+var LIVERELOAD_PORT = 35729;
+var lrSnippet = require('connect-livereload')({ port: LIVERELOAD_PORT });
 var mountFolder = function (connect, dir) {
   return connect.static(require('path').resolve(dir));
 };
+
+// # Globbing
+// for performance reasons we're only matching one level down:
+// 'test/spec/{,*/}*.js'
+// use this if you want to recursively match all subfolders:
+// 'test/spec/**/*.js'
 
 module.exports = function (grunt) {
   // load all grunt tasks
@@ -28,19 +36,21 @@ module.exports = function (grunt) {
       coffeeTest: {
         files: ['test/spec/{,*/}*.coffee'],
         tasks: ['coffee:test']
-      },
+      },<% if (compassBootstrap) { %>
       compass: {
         files: ['<%%= yeoman.app %>/styles/{,*/}*.{scss,sass}'],
-        tasks: ['compass']
-      },
+        tasks: ['compass:server']
+      },<% } %>
       livereload: {
+        options: {
+          livereload: LIVERELOAD_PORT
+        },
         files: [
           '<%%= yeoman.app %>/{,*/}*.html',
           '{.tmp,<%%= yeoman.app %>}/styles/{,*/}*.css',
           '{.tmp,<%%= yeoman.app %>}/scripts/{,*/}*.js',
           '<%%= yeoman.app %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
-        ],
-        tasks: ['livereload']
+        ]
       }
     },
     connect: {
@@ -66,6 +76,15 @@ module.exports = function (grunt) {
             return [
               mountFolder(connect, '.tmp'),
               mountFolder(connect, 'test')
+            ];
+          }
+        }
+      },
+      dist: {
+        options: {
+          middleware: function (connect) {
+            return [
+              mountFolder(connect, yeomanConfig.dist)
             ];
           }
         }
@@ -98,12 +117,6 @@ module.exports = function (grunt) {
         '<%%= yeoman.app %>/scripts/{,*/}*.js'
       ]
     },
-    karma: {
-      unit: {
-        configFile: 'karma.conf.js',
-        singleRun: true
-      }
-    },
     coffee: {
       dist: {
         files: [{
@@ -123,16 +136,20 @@ module.exports = function (grunt) {
           ext: '.js'
         }]
       }
-    },
+    },<% if (compassBootstrap) { %>
     compass: {
       options: {
         sassDir: '<%%= yeoman.app %>/styles',
         cssDir: '.tmp/styles',
+        generatedImagesDir: '.tmp/images/generated',
         imagesDir: '<%%= yeoman.app %>/images',
         javascriptsDir: '<%%= yeoman.app %>/scripts',
         fontsDir: '<%%= yeoman.app %>/styles/fonts',
         importPath: '<%%= yeoman.app %>/bower_components',
-        relativeAssets: true
+        httpImagesPath: '/images',
+        httpGeneratedImagesPath: '/images/generated',
+        httpFontsPath: '/styles/fonts',
+        relativeAssets: false
       },
       dist: {},
       server: {
@@ -140,13 +157,20 @@ module.exports = function (grunt) {
           debugInfo: true
         }
       }
-    },
-    concat: {
+    },<% } %>
+    // not used since Uglify task does concat,
+    // but still available if needed
+    /*concat: {
+      dist: {}
+    },*/
+    rev: {
       dist: {
         files: {
-          '<%%= yeoman.dist %>/scripts/scripts.js': [
-            '.tmp/scripts/{,*/}*.js',
-            '<%%= yeoman.app %>/scripts/{,*/}*.js'
+          src: [
+            '<%%= yeoman.dist %>/scripts/{,*/}*.js',
+            '<%%= yeoman.dist %>/styles/{,*/}*.css',
+            '<%%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
+            '<%%= yeoman.dist %>/styles/fonts/*'
           ]
         }
       }
@@ -174,15 +198,28 @@ module.exports = function (grunt) {
         }]
       }
     },
-    cssmin: {
+    svgmin: {
       dist: {
-        files: {
-          '<%%= yeoman.dist %>/styles/main.css': [
-            '.tmp/styles/{,*/}*.css',
-            '<%%= yeoman.app %>/styles/{,*/}*.css'
-          ]
-        }
+        files: [{
+          expand: true,
+          cwd: '<%%= yeoman.app %>/images',
+          src: '{,*/}*.svg',
+          dest: '<%%= yeoman.dist %>/images'
+        }]
       }
+    },
+    cssmin: {
+      // By default, your `index.html` <!-- Usemin Block --> will take care of
+      // minification. This option is pre-configured if you do not wish to use
+      // Usemin blocks.
+      // dist: {
+      //   files: {
+      //     '<%%= yeoman.dist %>/styles/main.css': [
+      //       '.tmp/styles/{,*/}*.css',
+      //       '<%%= yeoman.app %>/styles/{,*/}*.css'
+      //     ]
+      //   }
+      // }
     },
     htmlmin: {
       dist: {
@@ -203,6 +240,54 @@ module.exports = function (grunt) {
           src: ['*.html', 'views/*.html'],
           dest: '<%%= yeoman.dist %>'
         }]
+      }
+    },
+    // Put files not handled in other tasks here
+    copy: {
+      dist: {
+        files: [{
+          expand: true,
+          dot: true,
+          cwd: '<%%= yeoman.app %>',
+          dest: '<%%= yeoman.dist %>',
+          src: [
+            '*.{ico,png,txt}',
+            '.htaccess',
+            'bower_components/**/*',
+            'images/{,*/}*.{gif,webp}',
+            'styles/fonts/*'
+          ]
+        }, {
+          expand: true,
+          cwd: '.tmp/images',
+          dest: '<%%= yeoman.dist %>/images',
+          src: [
+            'generated/*'
+          ]
+        }]
+      }
+    },
+    concurrent: {
+      server: [
+        'coffee:dist'<% if (compassBootstrap) { %>,
+        'compass:server'<% } %>
+      ],
+      test: [
+        'coffee'<% if (compassBootstrap) { %>,
+        'compass'<% } %>
+      ],
+      dist: [
+        'coffee',<% if (compassBootstrap) { %>
+        'compass:dist',<% } %>
+        'imagemin',
+        'svgmin',
+        'htmlmin'
+      ]
+    },
+    karma: {
+      unit: {
+        configFile: 'karma.conf.js',
+        singleRun: true
       }
     },
     cdnify: {
@@ -228,76 +313,47 @@ module.exports = function (grunt) {
           ]
         }
       }
-    },
-    rev: {
-      dist: {
-        files: {
-          src: [
-            '<%%= yeoman.dist %>/scripts/{,*/}*.js',
-            '<%%= yeoman.dist %>/styles/{,*/}*.css',
-            '<%%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
-            '<%%= yeoman.dist %>/styles/fonts/*'
-          ]
-        }
-      }
-    },
-    copy: {
-      dist: {
-        files: [{
-          expand: true,
-          dot: true,
-          cwd: '<%%= yeoman.app %>',
-          dest: '<%%= yeoman.dist %>',
-          src: [
-            '*.{ico,txt}',
-            '.htaccess',
-            'bower_components/**/*',
-            'images/{,*/}*.{gif,webp}',
-            'styles/fonts/*'
-          ]
-        }]
-      }
     }
   });
 
-  grunt.renameTask('regarde', 'watch');
+  grunt.registerTask('server', function (target) {
+    if (target === 'dist') {
+      return grunt.task.run(['build', 'open', 'connect:dist:keepalive']);
+    }
 
-  grunt.registerTask('server', [
-    'clean:server',
-    'coffee:dist',
-    'compass:server',
-    'livereload-start',
-    'connect:livereload',
-    'open',
-    'watch'
-  ]);
+    grunt.task.run([
+      'clean:server',
+      'concurrent:server',
+      'connect:livereload',
+      'open',
+      'watch'
+    ]);
+  });
 
   grunt.registerTask('test', [
     'clean:server',
-    'coffee',
-    'compass',
+    'concurrent:test',
     'connect:test',
     'karma'
   ]);
 
   grunt.registerTask('build', [
     'clean:dist',
-    'jshint',
-    'test',
-    'coffee',
-    'compass:dist',
     'useminPrepare',
+    'concurrent:dist',
     'concat',
-    'imagemin',
-    'cssmin',
-    'htmlmin',
     'copy',
     'cdnify',
     'ngmin',
+    'cssmin',
     'uglify',
     'rev',
     'usemin'
   ]);
 
-  grunt.registerTask('default', ['build']);
+  grunt.registerTask('default', [
+    'jshint',
+    'test',
+    'build'
+  ]);
 };
