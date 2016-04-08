@@ -211,3 +211,7 @@ angular.module('myMod').controller('MyCtrl',
 ```
 
 
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/Grievoushead/generator-express-angular/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
